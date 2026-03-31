@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LOOTTO Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWix+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkR4j8R2AB1z7Wmim8O0P6bR9N7f4l6L7w6w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+    <main class="card">
+        <section class="head">
+            <div>
+                <h1 class="title"><i class="fa-solid fa-clover"></i> LOOTTO Dashboard</h1>
+                <p class="subtitle">Search lottery results by draw date and preview JSON instantly.</p>
+            </div>
+            <div>
+                <button id="healthBtn" class="btn-ghost" type="button"><i class="fa-solid fa-heart-pulse"></i> Health Check</button>
+            </div>
+        </section>
+
+        <section class="grid">
+            <div class="field">
+                <label for="date"><i class="fa-regular fa-calendar"></i> Draw Date</label>
+                <input id="date" type="date" />
+            </div>
+            <div class="field">
+                <label for="limit"><i class="fa-solid fa-list-ol"></i> Limit</label>
+                <input id="limit" type="number" min="1" max="100" value="10" />
+            </div>
+            <div class="field">
+                <label for="endpoint"><i class="fa-solid fa-link"></i> Endpoint</label>
+                <input id="endpoint" type="text" value="/api/lottery" readonly />
+            </div>
+        </section>
+
+        <section class="actions">
+            <button id="searchBtn" class="btn-primary" type="button"><i class="fa-solid fa-magnifying-glass"></i> Search Results</button>
+            <button id="clearBtn" class="btn-ghost" type="button"><i class="fa-solid fa-broom"></i> Clear</button>
+        </section>
+
+        <div id="status" class="status">Ready.</div>
+
+        <section class="results">
+            <div class="results-head">
+                <span><i class="fa-solid fa-database"></i> Response Preview</span>
+            </div>
+            <pre id="output">Run a search to display API results.</pre>
+        </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
