@@ -272,12 +272,9 @@ UI_HTML = """
         }
 
         searchBtn.addEventListener("click", async () => {
-            if (!dateEl.value) {
-                setStatus("Please choose a draw date first.", "err");
-                return;
-            }
             const limit = Number(limitEl.value || 10);
-            const url = "/api/lottery?date=" + encodeURIComponent(dateEl.value) + "&limit=" + encodeURIComponent(limit);
+            const datePart = dateEl.value ? "date=" + encodeURIComponent(dateEl.value) + "&" : "";
+            const url = "/api/lottery?" + datePart + "limit=" + encodeURIComponent(limit);
             await callApi(url);
         });
 
@@ -314,10 +311,6 @@ def get_lottery_results():
         limit = int(request.args.get("limit", 10))
         logger.info(f"Request received — date: {date}, limit: {limit}")
 
-        if not date:
-            logger.warning("Missing 'date' parameter — returning 400")
-            return jsonify({"error": "Date parameter is required"}), 400
-
         query = {"_id": date} if date else {}
 
         cursor = (
@@ -327,7 +320,7 @@ def get_lottery_results():
         )
 
         results = list(cursor)
-        logger.info(f"Query returned {len(results)} result(s) for date: {date}")
+        logger.info(f"Query returned {len(results)} result(s) for date: {date or 'latest'}")
 
         if not results:
             logger.warning(f"No results found for date: {date} — returning 404")
