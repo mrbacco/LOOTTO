@@ -10,6 +10,9 @@ import logging
 import os
 from pymongo import MongoClient
 from pymongo.server_api import ServerApi
+from dotenv import load_dotenv
+
+load_dotenv()  # Load environment variables from .env file
 
 logging.basicConfig(
     level=logging.INFO,
