@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-mrbacco copyright
+mrbacco04 copyright
 
 This is a script file.
 """
@@ -17,12 +17,12 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s"
 )
-logger = logging.getLogger(__name__)
+BAC_LOG = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
-logger.info(f"MongoDB URI: {MONGO_URI}")
+BAC_LOG.info(f"MongoDB URI: {MONGO_URI}")
 client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=3000)
 db = client["lottery"]
 collection = db["lottoresults"]
@@ -126,10 +126,10 @@ def get_lottery_results():
         if limit < 1:
             return jsonify({"error": "limit must be >= 1"}), 400
 
-        logger.info(f"Request received — date: {date}, limit: {limit}")
+        BAC_LOG.info(f"Request received — date: {date}, limit: {limit}")
 
         if not is_database_available():
-            logger.warning("MongoDB unavailable; serving results from CSV fallback")
+            BAC_LOG.warning("MongoDB unavailable; serving results from CSV fallback")
             csv_results = get_csv_lottery_results(date_filter=date, limit=limit)
             if not csv_results:
                 return jsonify({"error": "No results found"}), 404
@@ -144,23 +144,23 @@ def get_lottery_results():
         )
 
         results = list(cursor)
-        logger.info(f"Query returned {len(results)} result(s) for date: {date or 'latest'}")
+        BAC_LOG.info(f"Query returned {len(results)} result(s) for date: {date or 'latest'}")
 
         if not results:
-            logger.warning(f"No results found for date: {date} — returning 404")
+            BAC_LOG.warning(f"No results found for date: {date} — returning 404")
             return jsonify({"error": "No results found"}), 404
 
         return jsonify(make_json_safe(results)), 200
 
     except PyMongoError as error:
-        logger.error(f"MongoDB error: {error}", exc_info=True)
+        BAC_LOG.error(f"MongoDB error: {error}", exc_info=True)
         return jsonify({
             "error": "Database query failed",
             "details": str(error)
         }), 503
 
     except Exception as error:
-        logger.error(f"Unexpected error: {error}", exc_info=True)
+        BAC_LOG.error(f"Unexpected error: {error}", exc_info=True)
         return jsonify({
             "error": "Failed to fetch lottery results",
             "details": str(error)
@@ -169,5 +169,5 @@ def get_lottery_results():
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
-    logger.info(f"Starting Flask app on port {port}")
+    BAC_LOG.info(f"Starting Flask app on port {port}")
     app.run(debug=True, port=port)
