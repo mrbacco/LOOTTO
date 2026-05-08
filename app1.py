@@ -11,7 +11,7 @@ import csv
 from datetime import date, datetime
 from flask import Flask, request, jsonify, render_template
 from pymongo import MongoClient
-from pymongo.errors import PyMongoError, ServerSelectionTimeoutError
+from pymongo.errors import DuplicateKeyError, PyMongoError, ServerSelectionTimeoutError
 from pymongo.server_api import ServerApi
 from dotenv import load_dotenv
 
@@ -108,6 +108,25 @@ def get_csv_lottery_results(date_filter=None, limit=10):
     return results[:limit]
 
 
+def validate_lottery_payload(data):
+    if not isinstance(data, dict):
+        return "Request body must be a JSON object"
+
+    required = ["drawDate", "num1", "num2", "num3", "num4", "num5", "num6", "strong"]
+    for field in required:
+        if field not in data:
+            return f"Missing required field: {field}"
+        if data[field] is None or str(data[field]).strip() == "":
+            return f"Field {field} cannot be empty"
+
+    try:
+        datetime.fromisoformat(data["drawDate"])
+    except ValueError:
+        return "drawDate must be in ISO format YYYY-MM-DD"
+
+    return None
+
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -178,7 +197,118 @@ def get_lottery_results():
         }), 500
 
 
+@app.route("/api/lottery/<draw_date>", methods=["GET"])
+def get_lottery_result(draw_date):
+    try:
+        BAC_LOG.info(f"Fetching single result for {draw_date}")
+        result = collection.find_one({"_id": draw_date})
+        if not result:
+            return jsonify({"error": "Result not found"}), 404
+        return jsonify(make_json_safe(result)), 200
+    except PyMongoError as error:
+        BAC_LOG.error(f"MongoDB error: {error}", exc_info=True)
+        return jsonify({"error": "Database query failed", "details": str(error)}), 503
+    except Exception as error:
+        BAC_LOG.error(f"Unexpected error: {error}", exc_info=True)
+        return jsonify({"error": "Failed to fetch result", "details": str(error)}), 500
+
+
+@app.route("/api/lottery", methods=["POST"])
+def create_lottery_result():
+    if not request.is_json:
+        return jsonify({"error": "Request body must be JSON"}), 400
+
+    data = request.get_json()
+    error_message = validate_lottery_payload(data)
+    if error_message:
+        return jsonify({"error": error_message}), 400
+
+    document = {
+        "_id": data["drawDate"],
+        "drawDate": data["drawDate"],
+        "num1": str(data["num1"]).strip(),
+        "num2": str(data["num2"]).strip(),
+        "num3": str(data["num3"]).strip(),
+        "num4": str(data["num4"]).strip(),
+        "num5": str(data["num5"]).strip(),
+        "num6": str(data["num6"]).strip(),
+        "strong": str(data["strong"]).strip(),
+        "source": data.get("source", "api")
+    }
+
+    try:
+        collection.insert_one(document)
+        BAC_LOG.info(f"Created new lottery result for {data['drawDate']}")
+        return jsonify(make_json_safe(document)), 201
+    except DuplicateKeyError:
+        return jsonify({"error": "Lottery result already exists"}), 409
+    except PyMongoError as error:
+        BAC_LOG.error(f"MongoDB error: {error}", exc_info=True)
+        return jsonify({"error": "Database insert failed", "details": str(error)}), 503
+    except Exception as error:
+        BAC_LOG.error(f"Unexpected error: {error}", exc_info=True)
+        return jsonify({"error": "Failed to create result", "details": str(error)}), 500
+
+
+@app.route("/api/lottery/<draw_date>", methods=["PUT"])
+def update_lottery_result(draw_date):
+    if not request.is_json:
+        return jsonify({"error": "Request body must be JSON"}), 400
+
+    data = request.get_json()
+    error_message = validate_lottery_payload(data)
+    if error_message:
+        return jsonify({"error": error_message}), 400
+
+    update_fields = {
+        "drawDate": data["drawDate"],
+        "num1": str(data["num1"]).strip(),
+        "num2": str(data["num2"]).strip(),
+        "num3": str(data["num3"]).strip(),
+        "num4": str(data["num4"]).strip(),
+        "num5": str(data["num5"]).strip(),
+        "num6": str(data["num6"]).strip(),
+        "strong": str(data["strong"]).strip(),
+        "source": data.get("source", "api")
+    }
+
+    try:
+        result = collection.update_one(
+            {"_id": draw_date},
+            {"$set": update_fields}
+        )
+        if result.matched_count == 0:
+            return jsonify({"error": "Result not found"}), 404
+        BAC_LOG.info(f"Updated lottery result for {draw_date}")
+        return jsonify({"message": "Result updated successfully"}), 200
+    except PyMongoError as error:
+        BAC_LOG.error(f"MongoDB error: {error}", exc_info=True)
+        return jsonify({"error": "Database update failed", "details": str(error)}), 503
+    except Exception as error:
+        BAC_LOG.error(f"Unexpected error: {error}", exc_info=True)
+        return jsonify({"error": "Failed to update result", "details": str(error)}), 500
+
+
+@app.route("/api/lottery/<draw_date>", methods=["DELETE"])
+def delete_lottery_result(draw_date):
+    try:
+        result = collection.delete_one({"_id": draw_date})
+        if result.deleted_count == 0:
+            return jsonify({"error": "Result not found"}), 404
+        BAC_LOG.info(f"Deleted lottery result for {draw_date}")
+        return jsonify({"message": "Result deleted successfully"}), 200
+    except PyMongoError as error:
+        BAC_LOG.error(f"MongoDB error: {error}", exc_info=True)
+        return jsonify({"error": "Database delete failed", "details": str(error)}), 503
+    except Exception as error:
+        BAC_LOG.error(f"Unexpected error: {error}", exc_info=True)
+        return jsonify({"error": "Failed to delete result", "details": str(error)}), 500
+
+
 if __name__ == "__main__":
+    port = int(os.getenv("PORT", 8000))
+    BAC_LOG.info(f"Starting Flask app on port {port}")
+    app.run(debug=True, port=port)
     port = int(os.getenv("PORT", 8000))
     BAC_LOG.info(f"Starting Flask app on port {port}")
     app.run(debug=True, port=port)

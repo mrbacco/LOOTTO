@@ -32,3 +32,21 @@ Quick Flask API for lottery results using MongoDB.
 ## API
 - `GET /` health check
 - `GET /api/lottery?date=YYYY-MM-DD&limit=10` get results by date
+- `GET /api/lottery/<draw_date>` fetch a single lottery result by draw date
+- `POST /api/lottery` create a new lottery result
+- `PUT /api/lottery/<draw_date>` update an existing result
+- `DELETE /api/lottery/<draw_date>` delete a result
+
+### POST /api/lottery JSON payload
+```json
+{
+  "drawDate": "2026-05-08",
+  "num1": "01",
+  "num2": "02",
+  "num3": "03",
+  "num4": "04",
+  "num5": "05",
+  "num6": "06",
+  "strong": "07"
+}
+```
