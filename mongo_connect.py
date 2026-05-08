@@ -30,8 +30,8 @@ client = MongoClient(uri, server_api=ServerApi('1'))
 # Send a ping to confirm a successful connection
 try:
     client.admin.command('ping')
-    BAC_LOG.info("Successfully connected to MongoDB Atlas")
-    print("Pinged your deployment. You successfully connected to MongoDB!")
+    BAC_LOG.info("Successfully connected to MongoDB Atlas, mrbacco!!!")
+    
 except Exception as e:
-    BAC_LOG.error(f"Failed to connect to MongoDB Atlas: {e}")
-    print(e)
+    BAC_LOG.error(f"Failed to connect to MongoDB Atlas, mrbacco: {e}")
+    

@@ -12,6 +12,10 @@ from datetime import date, datetime
 from flask import Flask, request, jsonify, render_template
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError, ServerSelectionTimeoutError
+from pymongo.server_api import ServerApi
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logging.basicConfig(
     level=logging.INFO,
@@ -21,9 +25,16 @@ BAC_LOG = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+MONGO_URI = os.getenv(
+    "MONGO_URI",
+    "mongodb+srv://mrbacco04_db_user:wdTWUwfeVRB7aIlD@cluster0.cxzgfix.mongodb.net/?appName=Cluster0"
+)
 BAC_LOG.info(f"MongoDB URI: {MONGO_URI}")
-client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=3000)
+client = MongoClient(
+    MONGO_URI,
+    serverSelectionTimeoutMS=3000,
+    server_api=ServerApi('1')
+)
 db = client["lottery"]
 collection = db["lottoresults"]
 CSV_FILE = os.path.join(os.path.dirname(__file__), "Lotto.csv")
