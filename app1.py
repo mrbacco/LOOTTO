@@ -29,7 +29,7 @@ MONGO_URI = os.getenv(
     "MONGO_URI",
     "mongodb+srv://mrbacco04_db_user:wdTWUwfeVRB7aIlD@cluster0.cxzgfix.mongodb.net/?appName=Cluster0"
 )
-BAC_LOG.info(f"MongoDB URI: {MONGO_URI}")
+BAC_LOG.info(f"MongoDB Atlas URI: {MONGO_URI}")
 client = MongoClient(
     MONGO_URI,
     serverSelectionTimeoutMS=3000,
@@ -130,7 +130,7 @@ def get_lottery_results():
     try:
         date = request.args.get("date")
         try:
-            limit = int(request.args.get("limit", 10))
+            limit = int(request.args.get("limit", 50))
         except (TypeError, ValueError):
             return jsonify({"error": "limit must be an integer"}), 400
 

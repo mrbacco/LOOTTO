@@ -32,7 +32,7 @@ async function callApi(url) {
 }
 
 searchBtn.addEventListener("click", async () => {
-    const limit = Number(limitEl.value || 10);
+    const limit = Number(limitEl.value || 50);
     const datePart = dateEl.value ? "date=" + encodeURIComponent(dateEl.value) + "&" : "";
     const url = "/api/lottery?" + datePart + "limit=" + encodeURIComponent(limit);
     await callApi(url);
@@ -40,7 +40,7 @@ searchBtn.addEventListener("click", async () => {
 
 clearBtn.addEventListener("click", () => {
     dateEl.value = "";
-    limitEl.value = 10;
+    limitEl.value = 50;
     outputEl.textContent = "Run a search to display API results.";
     setStatus("Ready.", "");
 });
