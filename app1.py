@@ -25,14 +25,21 @@ BAC_LOG = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-MONGO_URI = os.getenv(
-    "MONGO_URI",
-    "mongodb+srv://mrbacco04_db_user:wdTWUwfeVRB7aIlD@cluster0.cxzgfix.mongodb.net/?appName=Cluster0"
-)
-BAC_LOG.info(f"MongoDB Atlas URI: {MONGO_URI}")
+MONGO_URI = os.getenv("MONGO_URI")
+if not MONGO_URI:
+    mongo_user = os.getenv("MONGO_USER", "mrbacco04_db_user")
+    mongo_password = os.getenv("MONGO_PASSWORD", "wdTWUwfeVRB7aIlD")
+    mongo_host = os.getenv("MONGO_HOST", "cluster0.cxzgfix.mongodb.net")
+    mongo_app = os.getenv("MONGO_APP_NAME", "Cluster0")
+    MONGO_URI = f"mongodb+srv://{mongo_user}:{mongo_password}@{mongo_host}/?appName={mongo_app}"
+
+BAC_LOG.info("Using MongoDB Atlas URI from environment")
+BAC_LOG.debug(f"MongoDB Atlas URI: {MONGO_URI}")
 client = MongoClient(
     MONGO_URI,
-    serverSelectionTimeoutMS=3000,
+    serverSelectionTimeoutMS=5000,
+    connectTimeoutMS=10000,
+    socketTimeoutMS=10000,
     server_api=ServerApi('1')
 )
 db = client["lottery"]
@@ -59,10 +66,13 @@ def make_json_safe(value):
 def is_database_available():
     try:
         client.admin.command("ping")
+        BAC_LOG.debug("MongoDB ping successful")
         return True
-    except ServerSelectionTimeoutError:
+    except ServerSelectionTimeoutError as error:
+        BAC_LOG.warning(f"MongoDB ping timeout: {error}")
         return False
-    except PyMongoError:
+    except PyMongoError as error:
+        BAC_LOG.error(f"MongoDB ping failed: {error}", exc_info=True)
         return False
 
 
@@ -70,6 +80,7 @@ def get_csv_lottery_results(date_filter=None, limit=10):
     results = []
 
     if not os.path.exists(CSV_FILE):
+        BAC_LOG.warning(f"CSV fallback file missing: {CSV_FILE}")
         return results
 
     with open(CSV_FILE, "r", encoding="latin-1", newline="") as csv_file:
@@ -136,6 +147,7 @@ def index():
 def health():
     db_status = "up" if is_database_available() else "down"
     active_source = "mongodb" if db_status == "up" else "csv-fallback"
+    BAC_LOG.info(f"Health check requested: database={db_status}, active_source={active_source}")
     return jsonify({
         "status": "ok",
         "database": db_status,
@@ -216,11 +228,13 @@ def get_lottery_result(draw_date):
 @app.route("/api/lottery", methods=["POST"])
 def create_lottery_result():
     if not request.is_json:
+        BAC_LOG.warning("Create lottery result failed: request body is not JSON")
         return jsonify({"error": "Request body must be JSON"}), 400
 
     data = request.get_json()
     error_message = validate_lottery_payload(data)
     if error_message:
+        BAC_LOG.warning(f"Create lottery result validation failed: {error_message}")
         return jsonify({"error": error_message}), 400
 
     document = {
@@ -253,11 +267,13 @@ def create_lottery_result():
 @app.route("/api/lottery/<draw_date>", methods=["PUT"])
 def update_lottery_result(draw_date):
     if not request.is_json:
+        BAC_LOG.warning(f"Update failed for {draw_date}: request body is not JSON")
         return jsonify({"error": "Request body must be JSON"}), 400
 
     data = request.get_json()
     error_message = validate_lottery_payload(data)
     if error_message:
+        BAC_LOG.warning(f"Update validation failed for {draw_date}: {error_message}")
         return jsonify({"error": error_message}), 400
 
     update_fields = {
